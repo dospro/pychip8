@@ -9,5 +9,5 @@ if __name__ == '__main__':
         sys.exit(0)
 
     cpu.load_rom(sys.argv[1])
-    while True:
+    while cpu.is_running:
         cpu.loop_step()

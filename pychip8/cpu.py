@@ -1,5 +1,6 @@
 from pychip8 import display
 from pychip8.memory import Memory
+from pychip8.input import Input
 
 
 class UnkownOpcodeError(Exception):
@@ -28,6 +29,7 @@ class Cpu:
 
         self.memory = Memory()
         self.display = display.PyGameDisplay()
+        self.input = Input()
 
         self.v_registers = [0] * 16
         self.stack = [0] * 16
@@ -38,6 +40,7 @@ class Cpu:
         self.delay_timer = 0
         self.sound_timer = 0
         self.init_opcodes()
+        self.is_running = True
 
     def load_rom(self, rom_filename):
         self.memory.load_rom(rom_filename)
@@ -49,16 +52,17 @@ class Cpu:
         if self.delay_timer != 0:
             self.delay_timer -= 1
 
+        self.input.update()
+        if self.input.exit_key_pressed:
+            self.is_running = False
+
         self.display.paint_screen()
 
     def run_opcode(self):
         opcode = self.memory.read_word(self.pc_register)
         self.pc_register += 2
         decoded = self.decode_opcode(opcode)
-        # print('{} - {}'.format(hex(opcode), decoded['opcode_string']))
         self.opcodes[decoded['opcode_string']](decoded)
-        # print('i -> {}'.format(self.i_register))
-        # print('v0 -> {}'.format(self.v_registers[0]))
 
     def decode_opcode(self, opcode):
         nibbles = [
@@ -329,15 +333,16 @@ class Cpu:
         @self.register_opcode('ex9e')
         def _(values):
             """Skip next instruction if key with the value Vx is pressed"""
-            # TODO
-            pass
+            vx = self.v_registers[values['x']]
+            if self.input.is_key_pressed(vx):
+                self.pc_register += 2
 
         @self.register_opcode('exa1')
         def _(values):
             """Skip next instruction if key with value Vx is not pressed"""
-            # TODO
-            self.pc_register += 2
-            pass
+            vx = self.v_registers[values['x']]
+            if not self.input.is_key_pressed(vx):
+                self.pc_register += 2
 
         @self.register_opcode('fx07')
         def _(values):
@@ -347,8 +352,8 @@ class Cpu:
         @self.register_opcode('fx0a')
         def _(values):
             """Wait for a key press and store it on Vx"""
-            # TODO
-            pass
+            print('Waiting for key')
+            self.v_registers[values['x']] = 0
 
         @self.register_opcode('fx15')
         def _(values):
@@ -369,9 +374,7 @@ class Cpu:
         @self.register_opcode('fx29')
         def _(values):
             """Set I = location of sprite for digit Vx"""
-            # TODO
-            self.i_register = 0
-            pass
+            self.i_register = 5 * self.v_registers[values['x']]
 
         @self.register_opcode('fx33')
         def _(values):
@@ -392,5 +395,3 @@ class Cpu:
             """Read registers V0 through x from memory address I"""
             for i in range(values['x']):
                 self.v_registers[i] = self.memory.read_byte(self.i_register + i)
-
-        pass

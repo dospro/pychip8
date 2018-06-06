@@ -14,9 +14,9 @@ class VideoBuffer:
             if buffer_index + i > 0x7FF:
                 continue
             bit_pixel = (byte_line >> (7 - i)) & 1
-            if self.video_buffer[buffer_index + i] == 0 and bit_pixel == 1:
+            if self.video_buffer[buffer_index + i] == 1 and bit_pixel == 1:
                 collision = True
-            self.video_buffer[buffer_index + i] = bit_pixel
+            self.video_buffer[buffer_index + i] ^= bit_pixel
 
         return collision
 
@@ -29,7 +29,7 @@ class PyGameDisplay(VideoBuffer):
     def __init__(self):
         super().__init__()
         pygame.init()
-        self.screen = pygame.display.set_mode((640, 320))
+        self.screen = pygame.display.set_mode((640, 320), pygame.DOUBLEBUF)
 
     def paint_screen(self):
         for x_coord in range(64):
